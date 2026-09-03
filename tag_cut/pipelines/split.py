@@ -65,8 +65,8 @@ def split_video(
 
     shots = []
     for i, (start_tc, end_tc) in enumerate(scene_list):
-        start = round(start_tc.get_seconds(), 3)
-        end = round(end_tc.get_seconds(), 3)
+        start = round(start_tc.seconds, 3)
+        end = round(end_tc.seconds, 3)
         mid = round((start + end) / 2, 3)
 
         shot_id = uuid.uuid4().hex[:12]
