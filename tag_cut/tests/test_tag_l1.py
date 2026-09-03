@@ -1,0 +1,62 @@
+"""Tests for L1 vision tagging."""
+from pathlib import Path
+import json, pytest
+from providers.vision.shot_scale import estimate_shot_scale
+from providers.vision.quality import estimate_quality_grade
+
+SAMPLE = Path(__file__).resolve().parents[2] / "input" / "8月第60条信息流" / "v1" / "v1.mp4"
+
+def test_shot_scale_extreme_close_up():
+    dets = [{"bbox_norm": [0.1, 0.1, 0.9, 0.9], "confidence": 0.9, "class_name": "dog", "bbox": [0,0,100,100]}]
+    scale, conf = estimate_shot_scale(dets)
+    assert scale == "大特写" and conf == 0.9
+
+def test_shot_scale_wide():
+    dets = [{"bbox_norm": [0.4, 0.45, 0.6, 0.5], "confidence": 0.8, "class_name": "dog", "bbox": [0,0,10,10]}]
+    scale, conf = estimate_shot_scale(dets)
+    assert scale == "全景"
+
+def test_shot_scale_no_detections():
+    scale, conf = estimate_shot_scale([])
+    assert scale == "未知" and conf == 0.0
+
+def test_quality_grade_missing_image(tmp_path):
+    grade, score = estimate_quality_grade(tmp_path / "no_file.jpg")
+    assert grade == "?"
+
+@pytest.fixture
+def prepared_mat_dir(tmp_path):
+    if not SAMPLE.exists():
+        pytest.skip("sample video not found")
+    from pipelines.ingest import ingest_video
+    from pipelines.split import split_video
+    ingest_video(SAMPLE, data_root=tmp_path, batch_id="test")
+    return split_video(SAMPLE, data_root=tmp_path, batch_id="test")
+
+def test_tag_l1_creates_labels(prepared_mat_dir, tmp_path):
+    from pipelines.tag_l1 import tag_l1
+    tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    labels = json.loads((prepared_mat_dir / "labels.json").read_text())
+    assert isinstance(labels, list) and len(labels) > 0
+
+def test_tag_l1_label_fields(prepared_mat_dir, tmp_path):
+    from pipelines.tag_l1 import tag_l1
+    tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    labels = json.loads((prepared_mat_dir / "labels.json").read_text())
+    for label in labels:
+        for key in ["id", "shot_id", "layer", "label_type", "label_value", "source", "confidence"]:
+            assert key in label
+        assert label["layer"] == "l1"
+
+def test_tag_l1_layer_status(prepared_mat_dir, tmp_path):
+    from pipelines.tag_l1 import tag_l1
+    tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    status = json.loads((prepared_mat_dir / "layer_status.json").read_text())
+    assert status.get("l1") == "done"
+
+def test_tag_l1_quality_grade_in_shots(prepared_mat_dir, tmp_path):
+    from pipelines.tag_l1 import tag_l1
+    tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    shots = json.loads((prepared_mat_dir / "shots.json").read_text())
+    for shot in shots:
+        assert shot["quality_grade"] in ("A", "B", "C", "?", None)
