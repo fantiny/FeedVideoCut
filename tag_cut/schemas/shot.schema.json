@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Shot",
+  "description": "A detected scene/shot cut from a material.",
+  "type": "object",
+  "required": ["id", "material_id", "start_time", "end_time", "scene_number"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique shot identifier (UUID)" },
+    "material_id": { "type": "string", "description": "Parent material UUID" },
+    "start_time": { "type": "number", "description": "Shot start time in seconds", "minimum": 0 },
+    "end_time": { "type": "number", "description": "Shot end time in seconds", "minimum": 0 },
+    "key_frames": {
+      "type": "array",
+      "description": "Paths to extracted key-frame images",
+      "items": { "type": "string" }
+    },
+    "scene_number": { "type": "integer", "description": "Sequential scene index within the material", "minimum": 0 },
+    "quality_grade": { "type": "string", "description": "Quality tier label, e.g. A/B/C/D" },
+    "is_rejected": { "type": "boolean", "description": "Whether the shot was rejected by quality filter" },
+    "layer_status": {
+      "type": "object",
+      "description": "Processing status per pipeline layer (l0–l6)",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

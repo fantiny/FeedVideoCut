@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Material",
+  "description": "A raw video material record ingested into the pipeline.",
+  "type": "object",
+  "required": ["id", "file_name", "file_path", "ingest_time"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique material identifier (UUID)" },
+    "file_name": { "type": "string", "description": "Original filename" },
+    "file_path": { "type": "string", "description": "Absolute or relative path to the video file" },
+    "duration": { "type": "number", "description": "Duration in seconds", "minimum": 0 },
+    "width": { "type": "integer", "description": "Frame width in pixels", "minimum": 1 },
+    "height": { "type": "integer", "description": "Frame height in pixels", "minimum": 1 },
+    "fps": { "type": "number", "description": "Frames per second", "minimum": 0 },
+    "codec": { "type": "string", "description": "Video codec identifier, e.g. h264" },
+    "has_audio": { "type": "boolean", "description": "Whether the material contains an audio stream" },
+    "ingest_time": { "type": "string", "format": "date-time", "description": "ISO-8601 ingestion timestamp" }
+  },
+  "additionalProperties": false
+}

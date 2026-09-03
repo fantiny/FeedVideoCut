@@ -1,0 +1,22 @@
+input_root: ../input
+data_root: ./data
+exports_root: ./exports
+scene_detect:
+  threshold: 27.0
+  min_scene_len: 15
+providers:
+  vision:
+    yolo_weights: models/yolov8n.pt
+  audio:
+    enabled: true
+  llm:
+    cloud_vlm:
+      enabled: false
+      api_base: ""
+      api_key_env: OPENAI_API_KEY
+      model: gpt-4o
+      confidence_threshold: 0.6
+      max_frames_per_shot: 3
+      cache: true
+pipeline:
+  layers: [l0, split, l1, l2, l3_l6]

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pyyaml
+opencv-python-headless
+scenedetect[opencv]
+ultralytics
+numpy
+pillow
+httpx
+pytest
+pytest-asyncio
+httpx

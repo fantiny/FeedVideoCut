@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/
+.env
+data/
+exports/
+models/
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/out/

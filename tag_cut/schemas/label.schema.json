@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Label",
+  "description": "A single label applied to a shot at a given pipeline layer.",
+  "type": "object",
+  "required": ["id", "shot_id", "layer", "label_type", "source"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique label identifier (UUID)" },
+    "shot_id": { "type": "string", "description": "Parent shot UUID" },
+    "layer": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3", "L4", "L5", "L6"],
+      "description": "Pipeline layer that produced this label"
+    },
+    "label_type": { "type": "string", "description": "Category/key of the label, e.g. pet_species" },
+    "label_value": { "description": "Label value (any type)" },
+    "source": {
+      "type": "string",
+      "enum": ["model", "rule", "local_vlm", "cloud_vlm", "human"],
+      "description": "Origin of this label"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Confidence score in [0, 1]",
+      "minimum": 0,
+      "maximum": 1
+    }
+  },
+  "additionalProperties": false
+}
