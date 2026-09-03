@@ -1,0 +1,50 @@
+"""Ingest a single video file: extract L0 facts and write material.json."""
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+from services.config import load_config
+from services.ffprobe import extract_facts
+from services.paths import material_id, material_dir
+
+
+def ingest_video(
+    video_path: Path,
+    data_root: Path | None = None,
+    batch_id: str = "default",
+    config_path: Path | None = None,
+) -> Path:
+    """
+    Ingest one video.
+
+    Returns the material directory Path containing material.json.
+    Does NOT copy or modify the video file.
+    """
+    cfg = load_config(config_path)
+    if data_root is None:
+        data_root = Path(cfg["data_root"])
+
+    mat_id = material_id(video_path)
+    mat_dir = material_dir(data_root, batch_id, mat_id)
+
+    facts = extract_facts(video_path)
+
+    material = {
+        "id": mat_id,
+        "file_name": video_path.name,
+        "file_path": str(video_path.resolve()),
+        "ingest_time": datetime.now(timezone.utc).isoformat(),
+        **facts,
+    }
+
+    (mat_dir / "material.json").write_text(
+        json.dumps(material, ensure_ascii=False, indent=2)
+    )
+    # initialise layer_status file
+    (mat_dir / "layer_status.json").write_text(
+        json.dumps({"l0": "done"}, indent=2)
+    )
+    return mat_dir
