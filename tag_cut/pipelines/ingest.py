@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,6 +25,10 @@ def ingest_video(
     cfg = load_config(config_path)
     if data_root is None:
         data_root = Path(cfg["data_root"])
+
+    video_path = Path(video_path)
+    if not video_path.exists():
+        raise FileNotFoundError(f"Video not found: {video_path}")
 
     mat_id = material_id(video_path)
     mat_dir = material_dir(data_root, batch_id, mat_id)

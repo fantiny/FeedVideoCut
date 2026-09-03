@@ -12,7 +12,10 @@ def probe(video_path: Path) -> dict:
         "-show_format", "-show_streams",
         str(video_path),
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"ffprobe failed for {video_path}: {e.stderr}") from e
     return json.loads(result.stdout)
 
 
