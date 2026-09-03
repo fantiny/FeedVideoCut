@@ -4,6 +4,7 @@
   "description": "Aggregate capability scores for a shot, all floats in [0, 1].",
   "type": "object",
   "required": ["shot_id"],
+  "minProperties": 2,
   "properties": {
     "shot_id": { "type": "string", "description": "Parent shot UUID" },
     "hook_score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Opening hook strength" },

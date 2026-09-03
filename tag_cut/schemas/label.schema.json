@@ -9,11 +9,19 @@
     "shot_id": { "type": "string", "description": "Parent shot UUID" },
     "layer": {
       "type": "string",
-      "enum": ["L0", "L1", "L2", "L3", "L4", "L5", "L6"],
+      "enum": ["l0", "l1", "l2", "l3", "l4", "l5", "l6"],
       "description": "Pipeline layer that produced this label"
     },
     "label_type": { "type": "string", "description": "Category/key of the label, e.g. pet_species" },
-    "label_value": { "description": "Label value (any type)" },
+    "label_value": {
+      "description": "Label value (string, number, boolean, or array)",
+      "oneOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "array"}
+      ]
+    },
     "source": {
       "type": "string",
       "enum": ["model", "rule", "local_vlm", "cloud_vlm", "human"],

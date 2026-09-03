@@ -13,3 +13,14 @@ def test_deep_merge_override(tmp_path):
     assert cfg["scene_detect"]["threshold"] == 30.0
     # other keys preserved
     assert cfg["providers"]["llm"]["cloud_vlm"]["enabled"] is False
+
+def test_top_level_keys_present():
+    cfg = load_config()
+    for key in ["input_root", "data_root", "exports_root", "scene_detect", "providers", "pipeline"]:
+        assert key in cfg, f"Missing key: {key}"
+
+def test_missing_override_raises():
+    from pathlib import Path
+    import pytest
+    with pytest.raises(FileNotFoundError):
+        load_config(Path("/nonexistent/override.yaml"))
