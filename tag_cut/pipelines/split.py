@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
+import warnings
 from pathlib import Path
 from typing import NamedTuple
 
@@ -64,21 +65,22 @@ def split_video(
 
     shots = []
     for i, (start_tc, end_tc) in enumerate(scene_list):
-        # Use .seconds property (get_seconds() deprecated in scenedetect 0.6+)
-        start = round(start_tc.seconds if hasattr(start_tc, "seconds") else start_tc.get_seconds(), 3)
-        end = round(end_tc.seconds if hasattr(end_tc, "seconds") else end_tc.get_seconds(), 3)
+        start = round(start_tc.get_seconds(), 3)
+        end = round(end_tc.get_seconds(), 3)
         mid = round((start + end) / 2, 3)
 
         shot_id = uuid.uuid4().hex[:12]
         prefix = f"shot_{i:04d}"
 
         kf_paths: dict[str, str] = {}
+        # Use end - 0.05s to avoid grabbing the first frame of the next shot
         for label, ts in [("start", start), ("mid", mid), ("end", max(0.0, end - 0.05))]:
             out = kf_dir / f"{prefix}_{label}.jpg"
             try:
                 extract_keyframe(video_path, ts, out)
                 kf_paths[label] = str(out)
-            except RuntimeError:
+            except RuntimeError as exc:
+                warnings.warn(f"Keyframe extraction failed for shot {i} [{label}] at {ts}s: {exc}")
                 kf_paths[label] = None  # type: ignore[assignment]
 
         shots.append({
@@ -90,7 +92,7 @@ def split_video(
             "key_frames": kf_paths,
             "quality_grade": None,
             "is_rejected": False,
-            "layer_status": {"split": "done"},
+            "layer_status": {},  # populated per-shot as tagging layers run
         })
 
     (mat_dir / "shots.json").write_text(
