@@ -85,3 +85,35 @@ def test_tag_l1_quality_grade_in_shots(prepared_mat_dir, tmp_path):
     for shot in shots:
         assert "quality_grade" in shot
         assert shot["quality_grade"] in ("A", "B", "C", "?", None)
+
+
+def test_tag_l1_emits_business_dimensions(prepared_mat_dir, tmp_path):
+    from pipelines.tag_l1 import tag_l1
+    tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    labels = json.loads((prepared_mat_dir / "labels.json").read_text())
+    types = {lb["label_type"] for lb in labels}
+    for required in (
+        "shot_scale", "quality_grade", "camera_move", "lighting",
+        "has_person", "has_dog", "has_product", "has_logo",
+        "dog_breed", "fur_color", "subject_layout",
+    ):
+        assert required in types, f"missing L1 dim {required}"
+
+
+def test_subject_layout_empty():
+    from providers.vision.frame_features import subject_layout
+    layout = subject_layout([])
+    assert layout["subject_count"] == 0
+    assert layout["position"] == "未知"
+
+
+def test_subject_layout_center():
+    from providers.vision.frame_features import subject_layout
+    layout = subject_layout([{
+        "class_name": "dog",
+        "confidence": 0.9,
+        "bbox_norm": [0.3, 0.3, 0.7, 0.7],
+        "bbox": [0, 0, 1, 1],
+    }])
+    assert layout["position"] == "中"
+    assert layout["subject_count"] == 1

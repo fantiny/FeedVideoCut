@@ -8,5 +8,6 @@ ultralytics
 numpy
 pillow
 httpx
+psutil
 pytest
 pytest-asyncio

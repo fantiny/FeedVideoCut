@@ -50,6 +50,27 @@ def test_behavior_no_events_returns_something():
     behaviors = _infer_behaviors([], duration=1.0)
     assert isinstance(behaviors, list)
 
+
+def test_behavior_feed_when_person_bowl_dog():
+    behaviors = _infer_behaviors(
+        [{"event": "ambient", "confidence": 0.5}],
+        duration=1.5,
+        has_dog=True,
+        has_person=True,
+        has_bowl=True,
+    )
+    assert any(b["behavior"] == "递碗投喂" for b in behaviors)
+
+
+def test_behavior_look_at_camera_closeup_dog():
+    behaviors = _infer_behaviors(
+        [{"event": "silent", "confidence": 0.9}],
+        duration=0.9,
+        has_dog=True,
+        shot_scale="特写",
+    )
+    assert any(b["behavior"] == "抬头看镜头" for b in behaviors)
+
 # ---------------------------------------------------------------------------
 # Integration tests — require sample video
 # ---------------------------------------------------------------------------
@@ -86,7 +107,9 @@ def test_tag_l2_label_fields(prepared_mat_dir, tmp_path):
     for label in l2:
         for key in ["id", "shot_id", "layer", "label_type", "label_value", "source", "confidence"]:
             assert key in label
-        assert label["label_type"] in ("audio_event", "behavior")
+        assert label["label_type"] in (
+            "audio_event", "behavior", "audio_texture", "audio_role",
+        )
 
 
 def test_tag_l2_layer_status(prepared_mat_dir, tmp_path):

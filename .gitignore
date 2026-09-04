@@ -1,19 +1,62 @@
+# OS / editor
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Worktrees / local tooling
 .worktrees/
 worktrees/
+dist/
+*.zip
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+**/.env
+**/config/local.yaml
+
+# Python
+.venv/
+venv/
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Runtime artifacts (never commit)
 tag_cut/data/
 tag_cut/exports/
-tag_cut/models/
-tag_cut/**/__pycache__/
-tag_cut/**/.pytest_cache/
+tag_cut/models/*.pt
+tag_cut/models/*.part
+tag_cut/models/*.onnx
+!tag_cut/models/.gitkeep
+
+# Desktop build
 tag_cut/apps/desktop/node_modules/
 tag_cut/apps/desktop/dist/
 tag_cut/apps/desktop/out/
-input/**/*.mp4
-input/**/*.mov
-input/**/*.jpg
-input/**/*.png
-*.pyc
-.venv/
-venv/
-.env
+
+# Private / demo materials — do NOT commit business SOP or sample videos
+# Ignore the input path itself (symlink or dir) and all contents except README
+/input
+/input/**
+!/input/README.md
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.xlsx
+*.xls
+
+# Logs
+*.log
+npm-debug.log*

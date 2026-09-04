@@ -3,14 +3,24 @@ from pathlib import Path
 import yaml
 
 _DEFAULT = Path(__file__).parent.parent / "config" / "default.yaml"
+_LOCAL = Path(__file__).parent.parent / "config" / "local.yaml"
+
 
 def load_config(override_path: Path | None = None) -> dict:
-    """Return merged config dict. override_path values win over defaults."""
-    cfg = yaml.safe_load(_DEFAULT.read_text())
+    """
+    Return merged config dict.
+
+    Merge order (later wins): default.yaml → config/local.yaml → override_path.
+    local.yaml is used for machine-specific choices (active YOLO weights, etc.).
+    """
+    cfg = yaml.safe_load(_DEFAULT.read_text()) or {}
+    if _LOCAL.exists():
+        local = yaml.safe_load(_LOCAL.read_text()) or {}
+        cfg = _deep_merge(cfg, local)
     if override_path is not None:
         if not override_path.exists():
             raise FileNotFoundError(f"Config override not found: {override_path}")
-        override = yaml.safe_load(override_path.read_text())
+        override = yaml.safe_load(override_path.read_text()) or {}
         cfg = _deep_merge(cfg, override)
     return cfg
 

@@ -40,6 +40,7 @@ class Job:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
+            "batch_id": Path(self.batch_path).name,
             "batch_path": self.batch_path,
             "video_glob": self.video_glob,
             "status": self.status,

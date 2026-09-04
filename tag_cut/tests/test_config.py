@@ -24,3 +24,13 @@ def test_missing_override_raises():
     import pytest
     with pytest.raises(FileNotFoundError):
         load_config(Path("/nonexistent/override.yaml"))
+
+
+def test_local_yaml_auto_merge(tmp_path, monkeypatch):
+    import services.config as cfgmod
+    local = tmp_path / "local.yaml"
+    local.write_text("providers:\n  vision:\n    yolo_weights: models/yolov8s.pt\n")
+    monkeypatch.setattr(cfgmod, "_LOCAL", local)
+    cfg = load_config()
+    assert cfg["providers"]["vision"]["yolo_weights"] == "models/yolov8s.pt"
+    assert cfg["scene_detect"]["threshold"] == 27.0

@@ -60,6 +60,36 @@ def test_rule_scorer_high_hook_for_first_bite_closeup():
     assert scores["hook_score"] >= 0.7
 
 
+def test_rule_scorer_emits_expanded_business_dims():
+    shot = _make_shot(duration=1.2)
+    labels = [
+        {"shot_id": "abc123", "layer": "l1", "label_type": "has_dog",
+         "label_value": "是", "source": "rule", "confidence": 0.8},
+        {"shot_id": "abc123", "layer": "l1", "label_type": "has_bowl",
+         "label_value": "是", "source": "rule", "confidence": 0.7},
+        {"shot_id": "abc123", "layer": "l1", "label_type": "shot_scale",
+         "label_value": "特写", "source": "rule", "confidence": 0.8},
+        {"shot_id": "abc123", "layer": "l1", "label_type": "camera_move",
+         "label_value": "固定", "source": "rule", "confidence": 0.6},
+        {"shot_id": "abc123", "layer": "l2", "label_type": "behavior",
+         "label_value": "大口进食", "source": "rule", "confidence": 0.7},
+        {"shot_id": "abc123", "layer": "l2", "label_type": "audio_event",
+         "label_value": "chew", "source": "rule", "confidence": 0.6},
+    ]
+    new_labels, scores = score_shot(shot, labels)
+    types = {lb["label_type"] for lb in new_labels}
+    for required in (
+        "relation_hint", "behavior_chain", "subject_role",
+        "category_code", "emotion", "emotion_intensity",
+        "commercial_evidence", "hook_role", "content_intent",
+        "edit_value", "usable_duration", "platform_fit", "compliance",
+    ):
+        assert required in types, f"missing dim {required}"
+    assert scores["evidence_score"] >= 0.5
+    cat = next(lb for lb in new_labels if lb["label_type"] == "category_code")
+    assert cat["label_value"] == "V03_狗狗进食"
+
+
 def test_cloud_disabled_by_default():
     cfg = load_config()
     assert cfg["providers"]["llm"]["cloud_vlm"]["enabled"] is False

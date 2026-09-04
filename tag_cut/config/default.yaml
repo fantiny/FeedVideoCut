@@ -1,4 +1,4 @@
-input_root: ../input
+input_root: ../input   # relative to tag_cut/ cwd → sibling folder input/
 data_root: ./data
 exports_root: ./exports
 scene_detect:
@@ -6,6 +6,7 @@ scene_detect:
   min_scene_len: 15
 providers:
   vision:
+    # Override via config/local.yaml after `models activate`
     yolo_weights: models/yolov8n.pt
   audio:
     enabled: true
