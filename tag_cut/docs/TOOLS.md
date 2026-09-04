@@ -10,6 +10,8 @@
 | `scripts/package_release.py` | 打跨机安装 zip |
 | `scripts/smoke_batch.py` | 批次流水线冒烟 |
 
+标签词表扩展见 **`docs/TAXONOMY.md`**（`config/taxonomy.yaml` + 可选 `taxonomy.local.yaml`）。
+
 ## 日常开发（桌面审核台）
 
 ```bash

@@ -15,6 +15,7 @@ from providers.vision.frame_features import (
 )
 from services.config import load_config
 from services.paths import ensure_material_dir, material_id
+from services.taxonomy import load_taxonomy
 
 
 def _lb(shot_id: str, label_type: str, value, conf: float, source: str = "rule") -> dict:
@@ -46,6 +47,7 @@ def tag_l1(
       has_logo (启发式占位).
     """
     cfg = load_config(config_path)
+    tax = load_taxonomy()
     if data_root is None:
         data_root = Path(cfg["data_root"])
     if mat_id is None:
@@ -68,7 +70,9 @@ def tag_l1(
 
     new_labels: list[dict] = []
     updated_shots: list[dict] = []
-    product_like = {"bottle", "cup", "bowl", "book", "cell phone", "laptop"}
+    product_like = tax.product_like_classes() or {
+        "bottle", "cup", "bowl", "book", "cell phone", "laptop",
+    }
 
     for shot in shots:
         shot_id = shot["id"]
@@ -125,10 +129,18 @@ def tag_l1(
         new_labels.append(_lb(shot_id, "has_dog", "是" if has_dog else "否", 0.8 if provider.available else 0.35))
         new_labels.append(_lb(shot_id, "has_product", "是" if has_product else "否", 0.55 if provider.available else 0.25))
         new_labels.append(_lb(shot_id, "has_bowl", "是" if has_bowl else "否", 0.6 if provider.available else 0.25))
-        # Breed / fur / logo need specialized models or OCR — emit explicit 未知 for schema completeness
-        new_labels.append(_lb(shot_id, "dog_breed", "其他" if has_dog else "无", 0.2 if has_dog else 0.5))
-        new_labels.append(_lb(shot_id, "fur_color", "未知" if has_dog else "无", 0.15 if has_dog else 0.5))
-        new_labels.append(_lb(shot_id, "has_logo", "未知", 0.1))
+        # Breed / fur / logo need specialized models or OCR — emit placeholders from taxonomy
+        breed_vals = tax.values("dog_breed")
+        breed_default = "其他" if "其他" in breed_vals else (breed_vals[0] if breed_vals else "其他")
+        breed_none = "无" if "无" in breed_vals else breed_default
+        fur_vals = tax.values("fur_color")
+        fur_unknown = "未知" if "未知" in fur_vals else (fur_vals[0] if fur_vals else "未知")
+        fur_none = "无" if "无" in fur_vals else fur_unknown
+        logo_vals = tax.values("has_logo") or tax.values("yes_no_unknown")
+        logo_unknown = "未知" if "未知" in logo_vals else (logo_vals[0] if logo_vals else "未知")
+        new_labels.append(_lb(shot_id, "dog_breed", breed_default if has_dog else breed_none, 0.2 if has_dog else 0.5))
+        new_labels.append(_lb(shot_id, "fur_color", fur_unknown if has_dog else fur_none, 0.15 if has_dog else 0.5))
+        new_labels.append(_lb(shot_id, "has_logo", logo_unknown, 0.1))
 
         duration = round(float(shot.get("end_time", 0)) - float(shot.get("start_time", 0)), 2)
         new_labels.append(_lb(shot_id, "duration", duration, 1.0, "rule"))

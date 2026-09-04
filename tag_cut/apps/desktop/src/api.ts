@@ -173,3 +173,8 @@ export async function searchFacets(batchId?: string) {
   const r = await apiFetch(`/tags/facets?${qs}`)
   return jsonOrThrow(r)
 }
+
+export async function getTaxonomy() {
+  const r = await apiFetch('/taxonomy')
+  return jsonOrThrow(r)
+}

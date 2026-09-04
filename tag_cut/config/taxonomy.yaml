@@ -1,0 +1,463 @@
+# tag_cut business taxonomy — editable vocabulary & dimension registry.
+# Override / extend via config/taxonomy.local.yaml (gitignored) without code changes.
+#
+# How to add a tag value:
+#   1) Append to the matching `enums.<name>.values` list (or dimensions[].values).
+#   2) If auto-tagging is needed, add a rule under behavior_rules / audio_*_rules
+#      or emit via human override / cloud VLM.
+#   3) Restart API / Electron (config is loaded at process start; CLI reloads each run).
+
+version: 1
+
+# ---------------------------------------------------------------------------
+# Dimension registry (label_type contract across L1–L6 / export / UI / search)
+# ---------------------------------------------------------------------------
+dimensions:
+  - id: shot_scale
+    layer: l1
+    label_type: shot_scale
+    label_zh: 景别
+    value_kind: enum
+    enum: shot_scale
+    ui_featured: true
+    export_column: 景别
+
+  - id: camera_move
+    layer: l1
+    label_type: camera_move
+    label_zh: 运镜
+    value_kind: enum
+    enum: camera_move
+    ui_featured: true
+    export_column: 运镜
+
+  - id: lighting
+    layer: l1
+    label_type: lighting
+    label_zh: 光线
+    value_kind: enum
+    enum: lighting
+    ui_featured: true
+    export_column: 光线
+
+  - id: quality_grade
+    layer: l1
+    label_type: quality_grade
+    label_zh: 画质等级
+    value_kind: enum
+    enum: quality_grade
+    ui_featured: false
+    export_column: 画质等级
+
+  - id: has_person
+    layer: l1
+    label_type: has_person
+    label_zh: 是否含人
+    value_kind: enum
+    enum: yes_no_unknown
+    ui_featured: true
+    export_column: 是否含人
+
+  - id: has_dog
+    layer: l1
+    label_type: has_dog
+    label_zh: 是否含狗
+    value_kind: enum
+    enum: yes_no_unknown
+    ui_featured: true
+
+  - id: has_product
+    layer: l1
+    label_type: has_product
+    label_zh: 是否含产品
+    value_kind: enum
+    enum: yes_no_unknown
+    ui_featured: true
+
+  - id: has_bowl
+    layer: l1
+    label_type: has_bowl
+    label_zh: 是否含碗
+    value_kind: enum
+    enum: yes_no_unknown
+    ui_featured: false
+
+  - id: has_logo
+    layer: l1
+    label_type: has_logo
+    label_zh: 是否含LOGO
+    value_kind: enum
+    enum: yes_no_unknown
+    ui_featured: false
+    export_column: 是否含LOGO
+
+  - id: dog_breed
+    layer: l1
+    label_type: dog_breed
+    label_zh: 犬种
+    value_kind: enum
+    enum: dog_breed
+    ui_featured: true
+    export_column: 犬种/主体
+
+  - id: fur_color
+    layer: l1
+    label_type: fur_color
+    label_zh: 毛色
+    value_kind: enum
+    enum: fur_color
+    ui_featured: false
+    export_column: 毛色
+
+  - id: behavior
+    layer: l2
+    label_type: behavior
+    label_zh: 行为
+    value_kind: enum
+    enum: behavior
+    ui_featured: true
+    export_column: 行为
+
+  - id: audio_event
+    layer: l2
+    label_type: audio_event
+    label_zh: 音频事件
+    value_kind: enum
+    enum: audio_event
+    ui_featured: false
+
+  - id: audio_texture
+    layer: l2
+    label_type: audio_texture
+    label_zh: 音频质感
+    value_kind: enum
+    enum: audio_texture
+    ui_featured: true
+    export_column: 音频质感
+
+  - id: audio_role
+    layer: l2
+    label_type: audio_role
+    label_zh: 音频角色
+    value_kind: enum
+    enum: audio_role
+    ui_featured: true
+
+  - id: subject_role
+    layer: l3
+    label_type: subject_role
+    label_zh: 主体角色
+    value_kind: enum
+    enum: subject_role
+    ui_featured: true
+    export_column: 主体角色
+
+  - id: relation_hint
+    layer: l3
+    label_type: relation_hint
+    label_zh: 关系
+    value_kind: string
+    ui_featured: true
+    export_column: 关系
+
+  - id: applicable_types
+    layer: l4
+    label_type: applicable_types
+    label_zh: 适用类型
+    value_kind: enum_list
+    enum: applicable_types
+    ui_featured: true
+    export_column: 适用类型
+
+  - id: category_code
+    layer: l4
+    label_type: category_code
+    label_zh: 分类码
+    value_kind: enum
+    enum: category_code
+    ui_featured: true
+    export_column: 二级分类建议
+
+  - id: emotion
+    layer: l4
+    label_type: emotion
+    label_zh: 情绪
+    value_kind: enum_list
+    enum: emotion
+    ui_featured: true
+    export_column: 情绪
+
+  - id: emotion_intensity
+    layer: l4
+    label_type: emotion_intensity
+    label_zh: 情绪强度
+    value_kind: enum
+    enum: emotion_intensity
+    ui_featured: false
+    export_column: 情绪强度
+
+  - id: hook_role
+    layer: l4
+    label_type: hook_role
+    label_zh: 钩子角色
+    value_kind: enum
+    enum: hook_role
+    ui_featured: true
+    export_column: 钩子角色
+
+  - id: content_intent
+    layer: l4
+    label_type: content_intent
+    label_zh: 内容意图
+    value_kind: string
+    ui_featured: true
+
+  - id: commercial_evidence
+    layer: l4
+    label_type: commercial_evidence
+    label_zh: 商业证据
+    value_kind: object
+    ui_featured: false
+
+  - id: edit_value
+    layer: l5
+    label_type: edit_value
+    label_zh: 可剪辑性
+    value_kind: object
+    ui_featured: false
+
+  - id: compliance
+    layer: l6
+    label_type: compliance
+    label_zh: 合规
+    value_kind: object
+    ui_featured: false
+
+# ---------------------------------------------------------------------------
+# Enumerations (append values here to extend business vocab)
+# ---------------------------------------------------------------------------
+enums:
+  shot_scale:
+    values: [大特写, 特写, 近景, 中景, 全景, 未知]
+    # height ratio thresholds (descending); first match wins
+    thresholds:
+      - { min_height: 0.60, label: 大特写 }
+      - { min_height: 0.40, label: 特写 }
+      - { min_height: 0.25, label: 近景 }
+      - { min_height: 0.10, label: 中景 }
+      - { min_height: 0.0, label: 全景 }
+    unknown: 未知
+
+  camera_move:
+    values: [固定, 推, 拉, 摇, 手持, 微距, 未知]
+    unknown: 未知
+
+  lighting:
+    values: [自然光, 棚拍, 混合, 夜景, 未知]
+    unknown: 未知
+
+  quality_grade:
+    values: [A, B, C, "?"]
+
+  yes_no_unknown:
+    values: [是, 否, 未知]
+
+  dog_breed:
+    values: [柯基, 金毛, 拉布拉多, 泰迪, 比熊, 柴犬, 其他, 无, 未知]
+    unknown: 未知
+
+  fur_color:
+    values: [白色, 黑色, 棕色, 金色, 花色, 其他, 无, 未知]
+    unknown: 未知
+
+  behavior:
+    values:
+      - 凑近闻
+      - 第一口
+      - 大口进食
+      - 舔碗
+      - 抬头看镜头
+      - 摇尾
+      - 等待投喂
+      - 人物讲解
+      - 递碗投喂
+      - 状态镜头
+
+  audio_event:
+    values: [silent, bark, speech, chew, lick, ambient, 未知]
+
+  audio_texture:
+    values: [ASMR咀嚼, 人声讲解, 环境音, 静音, 犬吠, 未知]
+    unknown: 未知
+
+  audio_role:
+    values: [钩子音效, 证据音, 旁白, 氛围, 未知]
+    unknown: 未知
+
+  subject_role:
+    values: [狗主体, 人物主体, 人物+狗, 产品主体, 场景]
+
+  applicable_types:
+    values: [种草, 科普, 分享, 营销, 通用]
+
+  category_code:
+    values:
+      - V01_产品特写
+      - V02_制作工艺
+      - V03_狗狗进食
+      - V04_人物出镜
+      - V99_待分类
+    default: V99_待分类
+
+  emotion:
+    values: [兴奋, 期待, 惊喜, 满足, 治愈, 反差, 搞笑, 悬念, 平静, 未知]
+
+  emotion_intensity:
+    values: [高, 中, 低]
+
+  hook_role:
+    values: [黄金3秒钩子, 证据段, 讲解段, 结尾/情绪段, 过渡/填充]
+
+# ---------------------------------------------------------------------------
+# Detection helpers
+# ---------------------------------------------------------------------------
+vision:
+  product_like_classes: [bottle, cup, bowl, book, cell phone, laptop]
+  closeup_scales: [大特写, 特写]
+
+# ---------------------------------------------------------------------------
+# Declarative L2 rules (order matters; first-matching groups still combine)
+# ---------------------------------------------------------------------------
+behavior_rules:
+  - id: commentary
+    emit: 人物讲解
+    confidence: 0.75
+    when: { audio_any: [speech] }
+
+  - id: feed_bowl
+    emit: 递碗投喂
+    confidence: 0.5
+    when:
+      has_person: true
+      has_bowl: true
+      has_dog: true
+      audio_none: [speech]
+
+  - id: first_bite
+    emit: 第一口
+    confidence: 0.6
+    when: { audio_any: [chew], duration_lt: 2.0 }
+
+  - id: eating
+    emit: 大口进食
+    confidence: 0.65
+    when: { audio_any: [chew], duration_gte: 2.0 }
+
+  - id: lick
+    emit: 舔碗
+    confidence: 0.65
+    when: { audio_any: [lick] }
+
+  - id: wag
+    emit: 摇尾
+    confidence: 0.45
+    when: { audio_any: [bark], audio_none: [speech] }
+
+  - id: look_camera
+    emit: 抬头看镜头
+    confidence: 0.35
+    when:
+      fallback_only: true
+      has_dog: true
+      closeup: true
+      duration_lte: 1.2
+
+  - id: status
+    emit: 状态镜头
+    confidence: 0.4
+    when:
+      fallback_only: true
+      has_dog: true
+      has_person: false
+      duration_gt: 2.5
+
+  - id: waiting
+    emit: 等待投喂
+    confidence: 0.4
+    when: { fallback_only: true, duration_gt: 2.0 }
+
+  - id: approach
+    emit: 凑近闻
+    confidence: 0.4
+    when: { fallback_only: true }
+
+audio_texture_rules:
+  - { emit: ASMR咀嚼, confidence: 0.65, audio_any: [chew, lick] }
+  - { emit: 人声讲解, confidence: 0.75, audio_any: [speech] }
+  - { emit: 犬吠, confidence: 0.6, audio_any: [bark] }
+  - { emit: 静音, confidence: 0.7, audio_any: [silent] }
+  - { emit: 环境音, confidence: 0.55, audio_any: [ambient] }
+
+audio_role_rules:
+  - { emit: 钩子音效, confidence: 0.55, texture: ASMR咀嚼, duration_lt: 2.0 }
+  - { emit: 证据音, confidence: 0.55, texture: ASMR咀嚼 }
+  - { emit: 旁白, confidence: 0.7, texture: 人声讲解 }
+  - { emit: 氛围, confidence: 0.5, texture_any: [环境音, 静音, 犬吠] }
+
+# ---------------------------------------------------------------------------
+# Search / UI / export presentation
+# ---------------------------------------------------------------------------
+search:
+  skip_match_types:
+    - object_detection
+    - lighting_metrics
+    - edit_value
+    - commercial_evidence
+    - usable_duration
+    - platform_fit
+    - compliance
+    - relation_chain
+    - subject_layout
+
+ui:
+  # Prefer explicit list; if empty, dimensions with ui_featured=true are used
+  featured_label_types: []
+
+export:
+  columns:
+    - 编号
+    - 一级分类建议
+    - 二级分类建议
+    - 文件名
+    - 景别
+    - 运镜
+    - 光线
+    - 时长(s)
+    - 画面主体描述
+    - 主体角色
+    - 关系
+    - 行为
+    - 音频质感
+    - 犬种/主体
+    - 毛色
+    - 是否含人
+    - 是否含LOGO
+    - 情绪
+    - 情绪强度
+    - 钩子角色
+    - 适用类型
+    - 进食证据
+    - 产品清晰
+    - 肖像风险
+    - 授权状态
+    - 已用次数
+    - 存储路径
+    - 画质等级
+    - 备注
+    - hook_score
+    - evidence_score
+    - emotion_score
+    - product_score
+    - start_time
+    - end_time
+    - keyframe_mid

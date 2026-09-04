@@ -11,6 +11,15 @@ Produces (per shot):
 """
 from __future__ import annotations
 
+from services.taxonomy import load_taxonomy
+
+
+def _filter_allowed(values: list[str], allowed: list[str]) -> list[str]:
+    if not allowed:
+        return values
+    keep = [v for v in values if v in allowed]
+    return keep if keep else values
+
 
 def _get_labels(labels: list[dict], layer: str, label_type: str) -> list[dict]:
     return [lb for lb in labels if lb.get("layer") == layer and lb.get("label_type") == label_type]
@@ -64,6 +73,7 @@ def score_shot(
     shot: dict,
     labels: list[dict],
 ) -> tuple[list[dict], dict]:
+    tax = load_taxonomy()
     shot_id = shot["id"]
     duration = float(shot.get("end_time", 0)) - float(shot.get("start_time", 0))
     quality_grade = shot.get("quality_grade") or _first_value(labels, "l1", "quality_grade", "?")
@@ -84,7 +94,7 @@ def score_shot(
     camera = _first_value(shot_labels, "l1", "camera_move", "未知")
     lighting = _first_value(shot_labels, "l1", "lighting", "未知")
     layout = _first_value(shot_labels, "l1", "subject_layout", {}) or {}
-    is_closeup = scale in ("大特写", "特写")
+    is_closeup = scale in tax.closeup_scales()
 
     behaviors = _behaviors(shot_labels)
     audio = _audio_events(shot_labels)
@@ -138,6 +148,7 @@ def score_shot(
         role = "产品主体"
     else:
         role = "场景"
+    role = tax.normalize("subject_role", role)
     new_labels.append(_mk(shot_id, "l3", "subject_role", role, 0.6))
 
     # ----- L4 content / commercial / emotion -----
@@ -153,6 +164,7 @@ def score_shot(
     types = [t for t in types if not (t in seen or seen.add(t))]
     if not types:
         types = ["通用"]
+    types = _filter_allowed(types, tax.values("applicable_types"))
     new_labels.append(_mk(shot_id, "l4", "applicable_types", types, 0.58))
 
     if has_dog and (has_eating or has_lick or has_first_bite or has_approach):
@@ -164,7 +176,8 @@ def score_shot(
     elif has_person and not has_speech:
         category = "V02_制作工艺"
     else:
-        category = "V99_待分类"
+        category = tax.default("category_code", "V99_待分类")
+    category = tax.normalize("category_code", category)
     new_labels.append(_mk(shot_id, "l4", "category_code", category, 0.55))
 
     # Emotion (multi-label evidence based)
@@ -184,6 +197,8 @@ def score_shot(
     if not emotions:
         emotions = ["平静" if duration > 2 else "未知"]
         intensity = "低"
+    emotions = _filter_allowed(emotions, tax.values("emotion"))
+    intensity = tax.normalize("emotion_intensity", intensity)
     new_labels.append(_mk(shot_id, "l4", "emotion", emotions, 0.5))
     new_labels.append(_mk(shot_id, "l4", "emotion_intensity", intensity, 0.5))
 
@@ -210,6 +225,7 @@ def score_shot(
         hook_role = "结尾/情绪段"
     else:
         hook_role = "过渡/填充"
+    hook_role = tax.normalize("hook_role", hook_role)
     new_labels.append(_mk(shot_id, "l4", "hook_role", hook_role, 0.55))
 
     if "种草" in types:

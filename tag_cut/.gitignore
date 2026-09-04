@@ -13,6 +13,7 @@ models/*.part
 models/*.onnx
 !models/.gitkeep
 config/local.yaml
+config/taxonomy.local.yaml
 apps/desktop/node_modules/
 apps/desktop/dist/
 apps/desktop/out/

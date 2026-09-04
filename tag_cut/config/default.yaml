@@ -21,3 +21,7 @@ providers:
       cache: true
 pipeline:
   layers: [l0, split, l1, l2, l3_l6]
+
+# Tag dimensions / enums / L2 rules: config/taxonomy.yaml
+# Business extensions (gitignored): config/taxonomy.local.yaml
+# API: GET /taxonomy  POST /taxonomy/reload

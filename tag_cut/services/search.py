@@ -5,9 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-# Skip dumping these into match text — they are large and create noisy hits
-# (e.g. query "自然" matching nested lighting inside edit_value).
-_SKIP_MATCH_TYPES = frozenset({
+# Fallback when taxonomy.search.skip_match_types is empty
+_DEFAULT_SKIP_MATCH_TYPES = frozenset({
     "object_detection",
     "lighting_metrics",
     "edit_value",
@@ -18,6 +17,17 @@ _SKIP_MATCH_TYPES = frozenset({
     "relation_chain",
     "subject_layout",
 })
+
+
+def _skip_match_types() -> frozenset[str]:
+    try:
+        from services.taxonomy import load_taxonomy
+        configured = load_taxonomy().skip_match_types()
+        if configured:
+            return frozenset(configured)
+    except Exception:  # noqa: BLE001
+        pass
+    return _DEFAULT_SKIP_MATCH_TYPES
 
 
 def _value_text(value: Any) -> str:
@@ -63,7 +73,7 @@ def _label_matches(label: dict, q: str, label_type: str | None, layer: str | Non
         return False
     if label_type and lt != label_type:
         return False
-    if lt in _SKIP_MATCH_TYPES and not label_type:
+    if lt in _skip_match_types() and not label_type:
         return False
     if not q:
         return True
@@ -192,7 +202,7 @@ def list_label_facets(
                 continue
             for lb in labels:
                 lt = str(lb.get("label_type") or "")
-                if not lt or lt in _SKIP_MATCH_TYPES:
+                if not lt or lt in _skip_match_types():
                     continue
                 type_counts[lt] = type_counts.get(lt, 0) + 1
                 text = _value_text(lb.get("label_value"))

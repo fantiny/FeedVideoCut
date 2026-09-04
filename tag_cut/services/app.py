@@ -19,6 +19,8 @@ Endpoints:
   POST /models/yolo/{id}/download     — download weights to models/
   GET  /models/yolo/{id}/download     — download progress
   POST /models/yolo/activate          — set active weights (config/local.yaml)
+  GET  /taxonomy                      — dimension registry + enum values
+  POST /taxonomy/reload               — clear taxonomy cache after config edit
   GET  /search                        — tag search across materials/shots
   GET  /search/facets                 — label type/value hints for UI
 """
@@ -165,7 +167,7 @@ def _run_job(
 def health():
     return {
         "status": "ok",
-        "features": ["search", "yolo_models", "clips", "batches"],
+        "features": ["search", "yolo_models", "clips", "batches", "taxonomy"],
     }
 
 
@@ -502,6 +504,25 @@ def activate_yolo_model(req: ModelActivateRequest):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
+# Taxonomy (configurable tag dimensions)
+# ---------------------------------------------------------------------------
+
+@app.get("/taxonomy")
+def get_taxonomy():
+    """Return dimension registry + enum values for UI / agents."""
+    from services.taxonomy import load_taxonomy
+    return load_taxonomy().public_dict()
+
+
+@app.post("/taxonomy/reload")
+def reload_taxonomy():
+    """Clear taxonomy cache after editing taxonomy.yaml / taxonomy.local.yaml."""
+    from services.taxonomy import clear_taxonomy_cache, load_taxonomy
+    clear_taxonomy_cache()
+    return {"status": "ok", "version": load_taxonomy().version}
 
 
 # ---------------------------------------------------------------------------

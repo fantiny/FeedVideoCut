@@ -13,6 +13,8 @@ import csv
 import json
 from pathlib import Path
 
+from services.taxonomy import load_taxonomy
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -116,7 +118,8 @@ def _build_row(material: dict, shot: dict, shot_labels: list[dict], shot_scores:
 # Public API
 # ---------------------------------------------------------------------------
 
-COLUMNS = [
+# Fallback columns when taxonomy.export.columns is empty
+_DEFAULT_COLUMNS = [
     "编号", "一级分类建议", "二级分类建议", "文件名",
     "景别", "运镜", "光线", "时长(s)", "画面主体描述", "主体角色", "关系", "行为", "音频质感",
     "犬种/主体", "毛色", "是否含人", "是否含LOGO",
@@ -126,6 +129,15 @@ COLUMNS = [
     "hook_score", "evidence_score", "emotion_score", "product_score",
     "start_time", "end_time", "keyframe_mid",
 ]
+
+
+def export_columns() -> list[str]:
+    cols = load_taxonomy().export_columns()
+    return cols if cols else list(_DEFAULT_COLUMNS)
+
+
+# Back-compat for imports that expect COLUMNS
+COLUMNS = _DEFAULT_COLUMNS
 
 
 def export_batch(
@@ -181,7 +193,7 @@ def export_batch(
 
     csv_path = out_dir / "index.csv"
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=export_columns(), extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 

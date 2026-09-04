@@ -54,7 +54,7 @@ function labelText(value: unknown): string {
 }
 
 /** Prefer business-facing dims over raw object_detection dumps. */
-const FEATURED_LABEL_TYPES = [
+const DEFAULT_FEATURED_LABEL_TYPES = [
   'shot_scale', 'camera_move', 'lighting',
   'has_person', 'has_dog', 'has_product', 'dog_breed',
   'behavior', 'audio_texture', 'audio_role',
@@ -63,16 +63,23 @@ const FEATURED_LABEL_TYPES = [
   'content_intent',
 ]
 
-function featuredLabels(labels: Shot['labels'] | undefined, limit = 16) {
+/** Filled from GET /taxonomy when backend is ready. */
+let featuredLabelTypes: string[] = DEFAULT_FEATURED_LABEL_TYPES
+
+function featuredLabels(
+  labels: Shot['labels'] | undefined,
+  limit = 16,
+  preferred: string[] = featuredLabelTypes,
+) {
   if (!labels?.length) return []
   const ranked = [...labels].sort((a, b) => {
-    const ia = FEATURED_LABEL_TYPES.indexOf(a.label_type || '')
-    const ib = FEATURED_LABEL_TYPES.indexOf(b.label_type || '')
+    const ia = preferred.indexOf(a.label_type || '')
+    const ib = preferred.indexOf(b.label_type || '')
     const ra = ia === -1 ? 999 : ia
     const rb = ib === -1 ? 999 : ib
     return ra - rb
   })
-  const picked = ranked.filter(l => FEATURED_LABEL_TYPES.includes(l.label_type || ''))
+  const picked = ranked.filter(l => preferred.includes(l.label_type || ''))
   const pool = picked.length ? picked : ranked
   return pool.slice(0, limit)
 }
@@ -156,6 +163,15 @@ function useBackendReady(): { ready: boolean; logs: string[] } {
             const features = Array.isArray(h?.features) ? h.features : []
             if (features.length && !features.includes('search')) {
               setLogs(prev => [...prev, '后台版本过旧（无搜索接口），请完全退出后重启 Electron'])
+            }
+            try {
+              const tax = await api.getTaxonomy()
+              const featured = tax?.featured_label_types
+              if (Array.isArray(featured) && featured.length) {
+                featuredLabelTypes = featured.map(String)
+              }
+            } catch {
+              /* keep DEFAULT_FEATURED_LABEL_TYPES */
             }
             setReady(true)
           }
