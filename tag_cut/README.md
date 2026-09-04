@@ -2,6 +2,12 @@
 
 全自动多层次视频拆解打标 + Electron 审核台。
 
+## 界面示例
+
+![桌面审核台总览](../docs/demo/desktop-overview.png)
+
+![镜头多层标签](../docs/demo/shot-tags.png)
+
 ## 技术栈
 
 - **Python 3.11+**：分析引擎（FastAPI + Uvicorn）
