@@ -8,7 +8,7 @@
 
 审核台：批次 / 素材列表、按标签搜索、镜头时间线与多层标签。
 
-![tag_cut 桌面审核台总览](docs/demo/desktop-overview.png)
+![tag_cut 桌面审核台总览](docs/demo/desktop-overview.jpg)
 
 单镜头标签示例（景别 / 运镜 / 行为 / 情绪 / 适用类型等）。
 

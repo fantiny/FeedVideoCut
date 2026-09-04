@@ -4,7 +4,7 @@
 
 ## 界面示例
 
-![桌面审核台总览](../docs/demo/desktop-overview.png)
+![桌面审核台总览](../docs/demo/desktop-overview.jpg)
 
 ![镜头多层标签](../docs/demo/shot-tags.png)
 
