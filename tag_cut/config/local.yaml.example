@@ -1,0 +1,10 @@
+# Copy to local.yaml (gitignored). Point at the SAME hub as FeedVideoMake.
+
+asset_hub_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets
+data_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/data
+exports_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/exports
+
+# Optional: keep YOLO weights local to this project
+# providers:
+#   vision:
+#     yolo_weights: models/yolov8n.pt

@@ -9,8 +9,10 @@
 | `scripts/install_agent_skill.py` | 安装 Cursor/Claude/Codex skill |
 | `scripts/package_release.py` | 打跨机安装 zip |
 | `scripts/smoke_batch.py` | 批次流水线冒烟 |
+| `scripts/resolve_hub.py` | 打印 asset_hub / data / exports 解析路径 |
 
-标签词表扩展见 **`docs/TAXONOMY.md`**（`config/taxonomy.yaml` + 可选 `taxonomy.local.yaml`）。
+标签词表扩展见 **`docs/TAXONOMY.md`**（`config/taxonomy.yaml` + 可选 `taxonomy.local.yaml`）。  
+与制作工程共享目录见 **`docs/ASSET_HUB.md`**。
 
 ## 日常开发（桌面审核台）
 

@@ -39,6 +39,7 @@ PYTHONPATH=. .venv/bin/python scripts/tag_cut_cli.py analyze --batch ../input/�
 | [tag_cut/docs/INSTALL.md](tag_cut/docs/INSTALL.md) | 换机 / zip 安装 |
 | [tag_cut/docs/AGENT_INSTALL.md](tag_cut/docs/AGENT_INSTALL.md) | 安装到 Cursor / Claude / Codex |
 | [tag_cut/docs/TOOLS.md](tag_cut/docs/TOOLS.md) | 启停与工具脚本 |
+| [tag_cut/docs/ASSET_HUB.md](tag_cut/docs/ASSET_HUB.md) | 与 FeedVideoMake 共享资产目录约定 |
 | [docs/plans/](docs/plans/) | 设计与实现计划 |
 
 ## 隐私与忽略规则

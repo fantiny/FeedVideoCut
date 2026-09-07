@@ -1,4 +1,10 @@
+# Shared asset hub with FeedVideoMake (filesystem only — same path on both projects).
+# Override in config/local.yaml with an absolute path; see docs/ASSET_HUB.md.
+asset_hub_root: null
+
 input_root: ../input   # relative to tag_cut/ cwd → sibling folder input/
+# Default: local under tag_cut/. For hub sharing, set data_root/exports_root
+# to {asset_hub_root}/data and {asset_hub_root}/exports in local.yaml.
 data_root: ./data
 exports_root: ./exports
 scene_detect:
@@ -25,3 +31,4 @@ pipeline:
 # Tag dimensions / enums / L2 rules: config/taxonomy.yaml
 # Business extensions (gitignored): config/taxonomy.local.yaml
 # API: GET /taxonomy  POST /taxonomy/reload
+# Shared hub: docs/ASSET_HUB.md
