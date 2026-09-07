@@ -18,7 +18,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pipelines.run import run_pipeline
-from services.config import load_config
+from services.config import anchor_root, load_config
 from services.paths import material_id, ensure_material_dir
 
 
@@ -59,7 +59,7 @@ def run_smoke(batch_path: Path, limit: int | None, config_path: Path | None):
         )
 
         elapsed = time.perf_counter() - t0
-        mat_id = material_id(video)
+        mat_id = material_id(video, anchor_root(load_config(config_path)))
         mat_dir = ensure_material_dir(data_root, batch_id, mat_id)
 
         # Summary

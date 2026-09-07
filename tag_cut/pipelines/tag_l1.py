@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from providers.vision.yolo_provider import YoloProvider
+from services.subtitle_detect import detect_subtitle
 from providers.vision.shot_scale import estimate_shot_scale
 from providers.vision.quality import estimate_quality_grade
 from providers.vision.frame_features import (
@@ -13,8 +14,8 @@ from providers.vision.frame_features import (
     estimate_camera_move,
     subject_layout,
 )
-from services.config import load_config
-from services.paths import ensure_material_dir, material_id
+from services.config import anchor_root, load_config, resolve_config_path
+from services.paths import ensure_material_dir, material_id, resolve_stored_path
 from services.taxonomy import load_taxonomy
 
 
@@ -49,9 +50,9 @@ def tag_l1(
     cfg = load_config(config_path)
     tax = load_taxonomy()
     if data_root is None:
-        data_root = Path(cfg["data_root"])
+        data_root = resolve_config_path(cfg["data_root"])
     if mat_id is None:
-        mat_id = material_id(video_path)
+        mat_id = material_id(video_path, anchor_root(cfg))
 
     mat_dir = ensure_material_dir(data_root, batch_id, mat_id)
     shots_path = mat_dir / "shots.json"
@@ -76,10 +77,15 @@ def tag_l1(
 
     for shot in shots:
         shot_id = shot["id"]
-        kf_paths = shot.get("key_frames", {}) or {}
-        primary_kf = kf_paths.get("mid") or kf_paths.get("start")
-        start_kf = kf_paths.get("start")
-        end_kf = kf_paths.get("end")
+        # Keyframes may be stored relative to the workspace anchor
+        anchor = anchor_root(cfg)
+        kfs = {
+            k: resolve_stored_path(v, anchor)
+            for k, v in (shot.get("key_frames") or {}).items() if v
+        }
+        primary_kf = kfs.get("mid") or kfs.get("start")
+        start_kf = kfs.get("start")
+        end_kf = kfs.get("end")
 
         detections: list[dict] = []
         if primary_kf and Path(primary_kf).exists():
@@ -90,6 +96,16 @@ def tag_l1(
         has_person = "person" in classes
         has_bowl = "bowl" in classes
         has_product = bool(classes & product_like) or has_bowl
+
+        # Per-keyframe object classes (start/mid/end) — feeding temporal
+        # behavior rules in L2 (eating persistence, subject co-occurrence).
+        kf_objects: dict[str, list[str]] = {}
+        for kf_label, kf in (("start", start_kf), ("mid", primary_kf), ("end", end_kf)):
+            if kf and Path(kf).exists():
+                kf_objects[kf_label] = (
+                    sorted(classes) if kf_label == "mid"
+                    else sorted({d.get("class_name") for d in provider.detect(Path(kf))})
+                )
 
         for det in detections:
             new_labels.append(_lb(
@@ -142,11 +158,20 @@ def tag_l1(
         new_labels.append(_lb(shot_id, "fur_color", fur_unknown if has_dog else fur_none, 0.15 if has_dog else 0.5))
         new_labels.append(_lb(shot_id, "has_logo", logo_unknown, 0.1))
 
+        # Burned-in subtitle detection on the mid keyframe (P0-1 backlog):
+        # 底部字幕带边缘密度 vs 中部 —— 广告成片普遍自带花字
+        has_sub, sub_pos, sub_conf = False, "无", 0.0
+        if primary_kf and Path(primary_kf).exists():
+            has_sub, sub_pos, sub_conf = detect_subtitle(primary_kf)
+        new_labels.append(_lb(shot_id, "has_subtitle", "是" if has_sub else "否", max(0.5, sub_conf)))
+        new_labels.append(_lb(shot_id, "subtitle_position", sub_pos if has_sub else "无", max(0.5, sub_conf)))
+
         duration = round(float(shot.get("end_time", 0)) - float(shot.get("start_time", 0)), 2)
         new_labels.append(_lb(shot_id, "duration", duration, 1.0, "rule"))
 
         shot = dict(shot)
         shot["quality_grade"] = grade
+        shot["kf_objects"] = kf_objects
         updated_shots.append(shot)
 
     labels_path.write_text(

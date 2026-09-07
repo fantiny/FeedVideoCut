@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 
 from providers.audio.vad_provider import detect_audio_events
-from services.config import load_config
+from services.config import anchor_root, load_config, resolve_config_path
 from services.paths import ensure_material_dir, material_id
 from services.taxonomy import (
     infer_audio_role,
@@ -65,9 +65,9 @@ def tag_l2(
     cfg = load_config(config_path)
     tax = load_taxonomy()
     if data_root is None:
-        data_root = Path(cfg["data_root"])
+        data_root = resolve_config_path(cfg["data_root"])
     if mat_id is None:
-        mat_id = material_id(video_path)
+        mat_id = material_id(video_path, anchor_root(cfg))
 
     audio_enabled: bool = cfg.get("providers", {}).get("audio", {}).get("enabled", True)
 
@@ -139,7 +139,64 @@ def tag_l2(
             "has_bowl": has_bowl,
             "closeup": (shot_scale in tax.closeup_scales()) if shot_scale else False,
         }
+
+        # Vision-first behaviors (P0-2): temporal co-occurrence of subject and
+        # food cues across start/mid/end keyframes outranks audio-only rules —
+        # the old audio-gated rules never fired 「大口进食」 (chew was rare),
+        # collapsing 100+/162 shots into a spurious 「摇尾」.
+        kf_objects: dict[str, list[str]] = shot.get("kf_objects") or {}
+        animal = {"dog", "cat"}
+        food = {"bowl", "carrot", "broccoli", "banana", "orange", "apple",
+                "sandwich", "hot dog", "pizza", "donut", "cake", "cup"}
+        animal_kf = sum(
+            1 for objs in kf_objects.values() if animal & set(objs)
+        )
+        food_kf = sum(
+            1 for objs in kf_objects.values() if food & set(objs)
+        )
+        eating_persistence = min(animal_kf, food_kf)
+        dog_person_kf = sum(
+            1 for objs in kf_objects.values()
+            if (animal & set(objs)) and ("person" in objs)
+        )
+
+        vision_behaviors: list[dict] = []
+        if eating_persistence >= 2:
+            vision_behaviors.append({"behavior": "大口进食", "confidence": min(0.9, 0.55 + 0.12 * eating_persistence)})
+            if ctx["closeup"]:
+                vision_behaviors.append({"behavior": "舔碗", "confidence": 0.6})
+        elif eating_persistence == 1 or (has_dog and has_bowl):
+            vision_behaviors.append({"behavior": "凑近闻", "confidence": 0.55})
+        if dog_person_kf >= 2:
+            vision_behaviors.append({"behavior": "递碗投喂", "confidence": 0.65})
+        elif has_dog and has_person:
+            vision_behaviors.append({"behavior": "等待投喂", "confidence": 0.55})
+
+        for b in vision_behaviors:
+            new_labels.append({
+                "id": uuid.uuid4().hex[:12],
+                "shot_id": shot_id,
+                "layer": "l2",
+                "label_type": "behavior",
+                "label_value": b["behavior"],
+                "source": "rule_vision",
+                "confidence": b["confidence"],
+            })
+        if eating_persistence >= 2:
+            new_labels.append({
+                "id": uuid.uuid4().hex[:12],
+                "shot_id": shot_id,
+                "layer": "l2",
+                "label_type": "eating_evidence",
+                "label_value": "是",
+                "source": "rule_vision",
+                "confidence": min(0.9, 0.55 + 0.12 * eating_persistence),
+            })
+
+        vision_names = {b["behavior"] for b in vision_behaviors}
         for b in infer_behaviors(tax, ctx):
+            if b["behavior"] in vision_names:
+                continue  # vision signal outranks the audio-only fallback
             new_labels.append({
                 "id": uuid.uuid4().hex[:12],
                 "shot_id": shot_id,

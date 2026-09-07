@@ -4,21 +4,21 @@
 
 ## 真源
 
-机器上的共享根目录（示例）：
+工作区根下的共享目录（示例，与 FeedVideoMake / pet_cut_tag 并列）：
 
-`/Volumes/TRAVELSTAR/AICut/FeedVideoAssets`
+`<工作区根>/FeedVideoAssets`
 
 完整布局与规则见该目录内 **`CONTRACT.md`**。
 
 ## 本仓如何接上
 
 1. 复制 `tag_cut/config/local.yaml.example` → `tag_cut/config/local.yaml`
-2. 将 `asset_hub_root` / `data_root` / `exports_root` 设为与 Make **相同**的 hub 路径：
+2. 将 `asset_hub_root` / `data_root` / `exports_root` 设为与 Make 解析到**同一个** hub 目录（相对 tag_cut/ 项目根）：
 
 ```yaml
-asset_hub_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets
-data_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/data
-exports_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/exports
+asset_hub_root: ../../../../FeedVideoAssets
+data_root: ../../../../FeedVideoAssets/data
+exports_root: ../../../../FeedVideoAssets/exports
 ```
 
 3. 之后分析写入 `data/`、导出写入 `exports/`，Make 侧只读同一路径。

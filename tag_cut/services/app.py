@@ -38,9 +38,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from services.config import load_config
+from services.config import anchor_root, load_config, resolve_config_path
 from services.jobs import job_store
-from services.paths import public_data_url, resolve_batch_path
+from services.paths import (
+    public_data_url,
+    resolve_batch_path,
+    resolve_media_path,
+    store_path,
+)
 
 app = FastAPI(title="tag_cut API", version="0.1.0")
 
@@ -52,9 +57,10 @@ app.add_middleware(
 )
 
 cfg = load_config()
-DATA_ROOT = Path(cfg["data_root"]).resolve()
+DATA_ROOT = resolve_config_path(cfg["data_root"])
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
-INPUT_ROOT = Path(cfg["input_root"])
+INPUT_ROOT = resolve_config_path(cfg["input_root"])
+ANCHOR = anchor_root(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -110,10 +116,11 @@ def _write_batch_meta(batch_id: str, source_path: str) -> None:
             prev = json.loads(meta_path.read_text())
         except json.JSONDecodeError:
             prev = {}
+    source = store_path(Path(source_path), ANCHOR)
     meta = {
         **prev,
         "batch_id": batch_id,
-        "source_path": source_path,
+        "source_path": source,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     if "created_at" not in meta:
@@ -196,7 +203,9 @@ def _batch_cache_summary(batch_id: str) -> dict:
             material = json.loads(mf.read_text())
             materials.append(material)
             if not source_path:
-                source_path = str(material.get("file_path") or "")
+                source_path = str(
+                    resolve_media_path(material.get("file_path"), ANCHOR) or ""
+                )
             shots_path = mat_dir / "shots.json"
             if shots_path.exists():
                 try:
@@ -322,7 +331,7 @@ def get_material(batch_id: str, mat_id: str):
     for shot in result.get("shots") or []:
         frames = shot.get("key_frames") or {}
         shot["key_frames"] = {
-            k: public_data_url(v, DATA_ROOT) or v
+            k: public_data_url(str(resolve_media_path(v, ANCHOR)), DATA_ROOT) or v
             for k, v in frames.items()
         }
     return result
@@ -381,7 +390,7 @@ def preview_shot(shot_id: str):
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    src = Path(str(material.get("file_path") or ""))
+    src = resolve_media_path(material.get("file_path"), ANCHOR) or Path("")
     cache = mat_dir / "clip_previews" / f"{shot_id}.mp4"
     if not cache.exists() or cache.stat().st_size == 0:
         try:
@@ -403,7 +412,7 @@ def export_shot(shot_id: str, req: ShotExportRequest):
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    src = Path(str(material.get("file_path") or ""))
+    src = resolve_media_path(material.get("file_path"), ANCHOR) or Path("")
     out_dir = Path(req.output_dir).expanduser()
     if not out_dir.is_absolute():
         out_dir = (Path.cwd() / out_dir).resolve()

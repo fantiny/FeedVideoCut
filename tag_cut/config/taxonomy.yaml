@@ -82,6 +82,29 @@ dimensions:
     enum: yes_no_unknown
     ui_featured: false
 
+  - id: has_subtitle
+    layer: l1
+    label_type: has_subtitle
+    label_zh: 是否有字幕
+    value_kind: enum
+    enum: yes_no_unknown
+    export_column: 是否有字幕
+
+  - id: subtitle_position
+    layer: l1
+    label_type: subtitle_position
+    label_zh: 字幕位置
+    value_kind: enum
+    enum: subtitle_position
+    export_column: 字幕位置
+
+  - id: semantic_desc
+    layer: l3
+    label_type: semantic_desc
+    label_zh: 语义描述
+    value_kind: text
+    export_column: 语义描述
+
   - id: has_logo
     layer: l1
     label_type: has_logo
@@ -262,6 +285,9 @@ enums:
   yes_no_unknown:
     values: [是, 否, 未知]
 
+  subtitle_position:
+    values: [底部, 中部, 无]
+
   dog_breed:
     values: [柯基, 金毛, 拉布拉多, 泰迪, 比熊, 柴犬, 其他, 无, 未知]
     unknown: 未知
@@ -434,6 +460,9 @@ export:
     - 光线
     - 时长(s)
     - 画面主体描述
+    - 语义描述
+    - 是否有字幕
+    - 字幕位置
     - 主体角色
     - 关系
     - 行为

@@ -2,8 +2,32 @@
 from pathlib import Path
 import yaml
 
-_DEFAULT = Path(__file__).parent.parent / "config" / "default.yaml"
-_LOCAL = Path(__file__).parent.parent / "config" / "local.yaml"
+ROOT = Path(__file__).parent.parent  # tag_cut/
+_DEFAULT = ROOT / "config" / "default.yaml"
+_LOCAL = ROOT / "config" / "local.yaml"
+
+
+def resolve_config_path(p: object, base: Path = ROOT) -> Path | None:
+    """Resolve a config path value; relative values are relative to the tag_cut root."""
+    if p is None or p == "" or p == "null":
+        return None
+    path = Path(str(p)).expanduser()
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def anchor_root(cfg: dict) -> Path:
+    """
+    Anchor for media paths stored in data JSONs (material file_path, keyframes).
+
+    Convention: stored media paths are relative to the workspace root that holds
+    all sibling projects (FeedVideoAssets / FeedVideoMake / pet_cut_tag). That
+    root is the parent of the configured asset hub. Without a hub configured,
+    fall back to the directory above tag_cut.
+    """
+    hub = resolve_config_path(cfg.get("asset_hub_root"))
+    return hub.parent if hub else ROOT.parent
 
 
 def load_config(override_path: Path | None = None) -> dict:

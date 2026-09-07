@@ -10,9 +10,9 @@ from typing import NamedTuple
 from scenedetect import open_video, SceneManager
 from scenedetect.detectors import ContentDetector
 
-from services.config import load_config
+from services.config import anchor_root, load_config, resolve_config_path
 from services.keyframes import extract_keyframe
-from services.paths import ensure_material_dir, material_id
+from services.paths import ensure_material_dir, material_id, store_path
 
 
 class _SimpleTimecode(NamedTuple):
@@ -37,10 +37,11 @@ def split_video(
     """
     cfg = load_config(config_path)
     if data_root is None:
-        data_root = Path(cfg["data_root"])
+        data_root = resolve_config_path(cfg["data_root"])
+    anchor = anchor_root(cfg)
 
     if mat_id is None:
-        mat_id = material_id(video_path)
+        mat_id = material_id(video_path, anchor_root(cfg))
 
     mat_dir = ensure_material_dir(data_root, batch_id, mat_id)
     kf_dir = mat_dir / "keyframes"
@@ -78,7 +79,7 @@ def split_video(
             out = kf_dir / f"{prefix}_{label}.jpg"
             try:
                 extract_keyframe(video_path, ts, out)
-                kf_paths[label] = str(out)
+                kf_paths[label] = store_path(out, anchor)
             except RuntimeError as exc:
                 warnings.warn(f"Keyframe extraction failed for shot {i} [{label}] at {ts}s: {exc}")
                 kf_paths[label] = None  # type: ignore[assignment]

@@ -77,6 +77,44 @@ def _compute_zcr(samples: list[int]) -> float:
     return crossings / len(samples)
 
 
+def _speech_likelihood(samples: list[int], sr: int = 16000) -> float:
+    """
+    Speech likelihood (0–1) via syllabic modulation of the energy envelope.
+
+    Human speech modulates its loudness at ~2–8 Hz (syllables); music/ambience
+    is steadier and barks are sparse bursts. We build a 25 ms RMS envelope and
+    measure how much of its variance sits in that band (zero crossings of the
+    mean-removed envelope per second, clipped to the speech band).
+    """
+    if not samples:
+        return 0.0
+    hop = sr // 40  # 25 ms
+    n = len(samples) // hop
+    if n < 8:
+        return 0.0
+    env = [math.sqrt(sum(s * s for s in samples[i * hop:(i + 1) * hop]) / hop) for i in range(n)]
+    mean_env = sum(env) / n
+    if mean_env < 200:  # near-silent
+        return 0.0
+    norm = [e - mean_env for e in env]
+    # zero-crossing rate of the mean-removed envelope → modulation frequency
+    crossings = sum(1 for i in range(1, n) if (norm[i] >= 0) != (norm[i - 1] >= 0))
+    mod_hz = crossings / 2 / (n * hop / sr)
+    # speech syllables live at 2–8 Hz; weight peak response inside the band
+    if 2.0 <= mod_hz <= 8.0:
+        band_factor = 1.0
+    elif 1.0 <= mod_hz < 2.0:
+        band_factor = (mod_hz - 1.0)
+    elif 8.0 < mod_hz <= 12.0:
+        band_factor = max(0.0, (12.0 - mod_hz) / 4.0)
+    else:
+        band_factor = 0.0
+    # how strongly the envelope fluctuates at all
+    var = sum(v * v for v in norm) / n
+    mod_depth = min(1.0, (math.sqrt(var) / mean_env) * 1.5)
+    return round(min(1.0, band_factor * mod_depth), 3)
+
+
 def detect_audio_events(
     video_path: Path,
     start: float,
@@ -102,6 +140,7 @@ def detect_audio_events(
 
         rms = _compute_rms(samples)
         zcr = _compute_zcr(samples)
+        speech_like = _speech_likelihood(samples)
 
         events: list[dict] = []
 
@@ -110,19 +149,24 @@ def detect_audio_events(
             events.append({"event": "silent", "confidence": 0.85, "source": "rule"})
             return events
 
-        # ZCR heuristics:
+        # Speech detection first: syllabic modulation is the strongest signal.
+        # (P0-3: 人声解说漏标是制作侧原声穿帮的根因)
+        if speech_like >= 0.35:
+            events.append({
+                "event": "speech",
+                "confidence": round(max(0.6, min(0.95, speech_like)), 2),
+                "source": "rule_vad",
+            })
+
+        # ZCR heuristics (secondary):
         # High ZCR + high energy → bark / sharp sound
-        # Medium ZCR → speech
-        # Low ZCR + medium energy → ambient / low rumble
-        # Very low ZCR + medium energy → chew/lick (low-freq)
-        if zcr > 0.15:
+        # Low ZCR + medium energy → chew/lick (low-freq)
+        # Very low ZCR + medium energy → ambient / low rumble
+        if zcr > 0.15 and speech_like < 0.45:
             events.append({"event": "bark", "confidence": round(min(0.9, zcr * 4), 2), "source": "rule"})
-        elif 0.05 < zcr <= 0.15:
-            conf = round(min(0.85, rms / 8000), 2)
-            events.append({"event": "speech", "confidence": conf, "source": "rule"})
-        elif 0.02 < zcr <= 0.05:
+        elif 0.02 < zcr <= 0.05 and speech_like < 0.3:
             events.append({"event": "chew", "confidence": 0.55, "source": "rule"})
-        else:
+        elif not events or (zcr <= 0.02 and speech_like < 0.2):
             events.append({"event": "ambient", "confidence": 0.6, "source": "rule"})
 
         return events

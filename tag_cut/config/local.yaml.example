@@ -1,8 +1,10 @@
 # Copy to local.yaml (gitignored). Point at the SAME hub as FeedVideoMake.
+# Paths are relative to the tag_cut/ project root:
+#   tag_cut → tag-cut → .worktrees → pet_cut_tag → <workspace root>
 
-asset_hub_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets
-data_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/data
-exports_root: /Volumes/TRAVELSTAR/AICut/FeedVideoAssets/exports
+asset_hub_root: ../../../../FeedVideoAssets
+data_root: ../../../../FeedVideoAssets/data
+exports_root: ../../../../FeedVideoAssets/exports
 
 # Optional: keep YOLO weights local to this project
 # providers:

@@ -85,9 +85,10 @@ def prepared_mat_dir(tmp_path):
     ingest_video(SAMPLE, data_root=tmp_path, batch_id="test")
     split_video(SAMPLE, data_root=tmp_path, batch_id="test")
     tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
+    from services.config import anchor_root, load_config
     from services.paths import material_id, ensure_material_dir
     from services.config import load_config
-    mat_id = material_id(SAMPLE)
+    mat_id = material_id(SAMPLE, anchor_root(load_config()))
     return ensure_material_dir(tmp_path, "test", mat_id)
 
 

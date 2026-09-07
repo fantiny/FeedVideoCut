@@ -3,9 +3,30 @@ from pathlib import Path
 import hashlib
 
 
-def material_id(video_path: Path) -> str:
-    """Stable ID: sha1 of the absolute path string (first 12 hex chars)."""
-    return hashlib.sha1(str(video_path.resolve()).encode()).hexdigest()[:12]
+def resolve_stored_path(raw: str | None, anchor: Path) -> Path | None:
+    """Resolve a path stored in data JSONs: absolute as-is, relative vs anchor."""
+    if not raw:
+        return None
+    p = Path(str(raw)).expanduser()
+    if not p.is_absolute():
+        p = anchor / p
+    return p
+
+
+def material_id(video_path: Path, anchor: Path | None = None) -> str:
+    """
+    Stable ID: sha1 of the path string (first 12 hex chars).
+
+    With `anchor` (the workspace root that holds all sibling projects), the ID
+    is computed from the path relative to it — stable across machines and
+    mount points. Without anchor, falls back to the absolute path.
+    """
+    try:
+        p = video_path.resolve()
+        key = p.relative_to(anchor.resolve()).as_posix() if anchor else str(p)
+    except (ValueError, OSError):
+        key = str(video_path.resolve())
+    return hashlib.sha1(key.encode()).hexdigest()[:12]
 
 
 def material_dir_path(data_root: Path, batch_id: str, mat_id: str) -> Path:
@@ -48,6 +69,25 @@ def resolve_batch_path(raw: str, *, cwd: Path | None = None, input_root: Path | 
         if cand.exists() and cand.is_dir():
             return cand
     return None
+
+
+def resolve_media_path(raw: object, anchor: Path) -> Path | None:
+    """Resolve a stored media path: absolute used as-is, relative against anchor."""
+    if raw is None or str(raw) == "":
+        return None
+    p = Path(str(raw)).expanduser()
+    if not p.is_absolute():
+        p = anchor / p
+    return p
+
+
+def store_path(p: Path, anchor: Path) -> str:
+    """Stringify a path for storage: relative to anchor when it lives under it."""
+    try:
+        resolved = p.resolve()
+        return resolved.relative_to(anchor.resolve()).as_posix()
+    except (ValueError, OSError):
+        return str(p)
 
 
 def public_data_url(abs_path: str | None, data_root: Path) -> str | None:

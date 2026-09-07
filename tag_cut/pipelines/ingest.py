@@ -5,9 +5,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from services.config import load_config
+from services.config import anchor_root, load_config, resolve_config_path
 from services.ffprobe import extract_facts
-from services.paths import material_id, material_dir
+from services.paths import material_id, material_dir, store_path
 
 
 def ingest_video(
@@ -24,13 +24,14 @@ def ingest_video(
     """
     cfg = load_config(config_path)
     if data_root is None:
-        data_root = Path(cfg["data_root"])
+        data_root = resolve_config_path(cfg["data_root"])
+    anchor = anchor_root(cfg)
 
     video_path = Path(video_path)
     if not video_path.exists():
         raise FileNotFoundError(f"Video not found: {video_path}")
 
-    mat_id = material_id(video_path)
+    mat_id = material_id(video_path, anchor_root(cfg))
     mat_dir = material_dir(data_root, batch_id, mat_id)
 
     facts = extract_facts(video_path)
@@ -38,7 +39,7 @@ def ingest_video(
     material = {
         "id": mat_id,
         "file_name": video_path.name,
-        "file_path": str(video_path.resolve()),
+        "file_path": store_path(video_path, anchor),
         "ingest_time": datetime.now(timezone.utc).isoformat(),
         **facts,
     }

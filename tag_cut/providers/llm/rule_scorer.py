@@ -102,6 +102,16 @@ def score_shot(
     has_chew = "chew" in audio or "第一口" in behaviors or "大口进食" in behaviors
     has_eating = "大口进食" in behaviors
     has_lick = "舔碗" in behaviors or "lick" in audio
+    # P0-2: temporal vision signal — animal + food cues across ≥2 keyframes
+    # (audio-only chew events were too rare, so eating evidence never landed)
+    kf_objects = shot.get("kf_objects") or {}
+    _animal, _food = {"dog", "cat"}, {"bowl", "carrot", "broccoli", "banana",
+                                      "orange", "apple", "cup"}
+    _ak = sum(1 for o in kf_objects.values() if _animal & set(o))
+    _fk = sum(1 for o in kf_objects.values() if _food & set(o))
+    has_vision_eating = min(_ak, _fk) >= 2
+    has_chew = has_chew or has_vision_eating
+    has_eating = has_eating or has_vision_eating
     has_first_bite = "第一口" in behaviors
     has_approach = "凑近闻" in behaviors
     has_wag = "摇尾" in behaviors
@@ -207,7 +217,7 @@ def score_shot(
         "product_clarity": bool(is_closeup and (has_product or has_bowl)),
         "ingredient_evidence": bool(is_closeup and has_product and not has_dog),
         "process_evidence": bool(has_person and not has_dog and camera in ("固定", "推", "微距")),
-        "eating_evidence": bool(has_chew or has_eating or has_lick),
+        "eating_evidence": bool(has_chew or has_eating or has_lick or (has_dog and has_bowl)),
         "price_signal": False,  # needs OCR
         "gift_signal": False,
         "store_signal": False,

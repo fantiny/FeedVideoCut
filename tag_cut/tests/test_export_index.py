@@ -48,8 +48,9 @@ def test_export_json_has_rows(prepared_data):
 
 def test_export_row_count_matches_non_rejected_shots(prepared_data):
     from pipelines.export_index import export_batch
+    from services.config import anchor_root, load_config
     from services.paths import material_id, ensure_material_dir
-    mat_id = material_id(SAMPLE)
+    mat_id = material_id(SAMPLE, anchor_root(load_config()))
     mat_dir = ensure_material_dir(prepared_data / "data", "test_batch", mat_id)
     shots = json.loads((mat_dir / "shots.json").read_text())
     non_rejected = [s for s in shots if not s.get("is_rejected")]

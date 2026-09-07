@@ -67,3 +67,15 @@ extend_behavior_rules:
 GET  /taxonomy          # 维度 + 枚举（给桌面端 / Agent）
 POST /taxonomy/reload   # 清缓存后重载
 ```
+
+## 2026-09-07 新增维度（配合 FeedVideoMake 语义绑定与字幕冲突策略）
+
+| 维度 | 层 | 值 | 来源 | 导出列 |
+|------|----|----|------|--------|
+| `has_subtitle` | L1 | 是/否 | 底部字幕带边缘密度检测（`services/subtitle_detect.py`） | `是否有字幕` |
+| `subtitle_position` | L1 | 底部/中部/无 | 同上 | `字幕位置` |
+| `semantic_desc` | L3 | 中文一句话描述 | 规则组合 + LLM 批量精修（`services/semantic.py`） | `语义描述` |
+| `eating_evidence` | L2/L4 | 是/否 | 视觉通道：动物+食物物体跨 ≥2 关键帧 | `进食证据` |
+
+L1 同时输出每镜头 `kf_objects`（start/mid/end 三关键帧物体类表，写入 shots.json），
+供 L2 行为时间持续性规则与下游语义绑定使用。

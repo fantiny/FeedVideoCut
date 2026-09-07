@@ -84,6 +84,9 @@ def _build_row(material: dict, shot: dict, shot_labels: list[dict], shot_scores:
         "光线": _first_label(shot_labels, "l1", "lighting") or "未知",
         "时长(s)": round(shot.get("end_time", 0) - shot.get("start_time", 0), 2),
         "画面主体描述": ", ".join(obj_classes) or "—",
+        "语义描述": _first_label(shot_labels, "l3", "semantic_desc") or "",
+        "是否有字幕": _first_label(shot_labels, "l1", "has_subtitle") or "未知",
+        "字幕位置": _first_label(shot_labels, "l1", "subtitle_position") or "无",
         "主体角色": _first_label(shot_labels, "l3", "subject_role") or "",
         "关系": _first_label(shot_labels, "l3", "relation_hint") or "",
         "行为": "/".join(behaviors) if behaviors else "",
@@ -121,7 +124,7 @@ def _build_row(material: dict, shot: dict, shot_labels: list[dict], shot_scores:
 # Fallback columns when taxonomy.export.columns is empty
 _DEFAULT_COLUMNS = [
     "编号", "一级分类建议", "二级分类建议", "文件名",
-    "景别", "运镜", "光线", "时长(s)", "画面主体描述", "主体角色", "关系", "行为", "音频质感",
+    "景别", "运镜", "光线", "时长(s)", "画面主体描述", "语义描述", "是否有字幕", "字幕位置", "主体角色", "关系", "行为", "音频质感",
     "犬种/主体", "毛色", "是否含人", "是否含LOGO",
     "情绪", "情绪强度", "钩子角色", "适用类型",
     "进食证据", "产品清晰", "肖像风险", "授权状态",

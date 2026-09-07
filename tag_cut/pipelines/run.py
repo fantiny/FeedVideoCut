@@ -15,7 +15,7 @@ from pipelines.split import split_video
 from pipelines.tag_l1 import tag_l1
 from pipelines.tag_l2 import tag_l2
 from pipelines.tag_l3_l6 import tag_l3_l6
-from services.config import load_config
+from services.config import anchor_root, load_config, resolve_config_path
 from services.paths import material_id, ensure_material_dir
 
 # Layer execution order (matches config pipeline.layers)
@@ -40,10 +40,10 @@ def run_pipeline(
     """
     cfg = load_config(config_path)
     if data_root is None:
-        data_root = Path(cfg["data_root"])
+        data_root = resolve_config_path(cfg["data_root"])
 
     layers_to_run = layers or LAYER_ORDER
-    mat_id = material_id(video_path)
+    mat_id = material_id(video_path, anchor_root(cfg))
     mat_dir = ensure_material_dir(data_root, batch_id, mat_id)
     ls_path = mat_dir / "layer_status.json"
 

@@ -119,8 +119,9 @@ def prepared_mat_dir(tmp_path):
     split_video(SAMPLE, data_root=tmp_path, batch_id="test")
     tag_l1(SAMPLE, data_root=tmp_path, batch_id="test")
     tag_l2(SAMPLE, data_root=tmp_path, batch_id="test")
+    from services.config import anchor_root, load_config
     from services.paths import material_id, ensure_material_dir
-    return ensure_material_dir(tmp_path, "test", material_id(SAMPLE))
+    return ensure_material_dir(tmp_path, "test", material_id(SAMPLE, anchor_root(load_config())))
 
 
 def test_tag_l3_l6_creates_scores(prepared_mat_dir, tmp_path):
