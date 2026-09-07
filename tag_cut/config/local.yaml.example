@@ -1,10 +1,31 @@
-# Copy to local.yaml (gitignored). Point at the SAME hub as FeedVideoMake.
+# Copy to local.yaml (gitignored). Machine-local overrides only — never commit
+# the real file (it holds API keys).
+#
 # Paths are relative to the tag_cut/ project root:
 #   tag_cut → tag-cut → .worktrees → pet_cut_tag → <workspace root>
+# They must resolve to the SAME hub as FeedVideoMake/config/local.yaml.
 
 asset_hub_root: ../../../../FeedVideoAssets
 data_root: ../../../../FeedVideoAssets/data
 exports_root: ../../../../FeedVideoAssets/exports
+
+# LLM for 语义描述精修（optional; falls back to rule text without a key).
+# Any OpenAI-compatible endpoint works; switch models via active_profile.
+llm:
+  enabled: true
+  active_profile: minimax
+  profiles:
+    minimax:
+      api_base: "https://api.minimax.chat/v1"   # 海外: https://api.minimaxi.io/v1
+      model: "MiniMax-Text-01"                  # fill the model your account allows
+      api_key: ""                               # ← fill your key here
+      api_key_env: MINIMAX_API_KEY              # or via env var
+      timeout_s: 60
+
+  # deepseek:
+  #   api_base: "https://api.deepseek.com/v1"
+  #   model: "deepseek-chat"
+  #   api_key_env: DEEPSEEK_API_KEY
 
 # Optional: keep YOLO weights local to this project
 # providers:
