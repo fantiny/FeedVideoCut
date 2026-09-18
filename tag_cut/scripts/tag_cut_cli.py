@@ -197,6 +197,76 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return subprocess.call(cmd, cwd=str(ROOT), env={**dict(**{k: v for k, v in __import__("os").environ.items()}), "PYTHONPATH": str(ROOT)})
 
 
+def cmd_clone(args: argparse.Namespace) -> int:
+    """复用已有批次创建新批次：索引直接拷贝，关键帧硬链接（零额外空间），
+    已用次数归零 —— 新旧批次后续业务（用次统计/内容/生成）完全独立。"""
+    import shutil
+    import subprocess
+    from datetime import datetime
+    from services.config import load_config
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    data_root = (ROOT / cfg["data_root"]).resolve()
+    exports_root = data_root.parent / "exports"
+
+    src_exports = exports_root / args.batch
+    src_index = src_exports / "index.json"
+    if not src_index.exists():
+        print(json.dumps({"ok": False,
+                          "error": f"源批次不存在或未打标：{args.batch}"}, ensure_ascii=False))
+        return 2
+    new_id = args.new or f"{args.batch}-复用-{datetime.now():%Y%m%d}"
+    dst_exports = exports_root / new_id
+    if dst_exports.exists():
+        print(json.dumps({"ok": False,
+                          "error": f"目标批次已存在：{new_id}"}, ensure_ascii=False))
+        return 2
+
+    # 1) 索引（exports/）：小文件，直接拷贝
+    shutil.copytree(src_exports, dst_exports)
+    # 2) 关键帧与打标数据（data/）：硬链接拷贝（同卷零空间，删除互不影响）
+    src_data = data_root / args.batch
+    dst_data = data_root / new_id
+    linked = False
+    if src_data.exists():
+        proc = subprocess.run(["cp", "-R", "-l", str(src_data), str(dst_data)],
+                              capture_output=True, text=True)
+        if proc.returncode == 0:
+            linked = True
+        else:   # 文件系统不支持硬链接时回退为完整拷贝
+            shutil.copytree(src_data, dst_data)
+    # 3) 新索引：关键帧路径改指向新批次 data 目录，已用次数归零
+    rows = json.loads((dst_exports / "index.json").read_text(encoding="utf-8"))
+    for row in rows:
+        kf = row.get("keyframe_mid")
+        if isinstance(kf, str) and f"/{args.batch}/" in kf:
+            row["keyframe_mid"] = kf.replace(f"/{args.batch}/", f"/{new_id}/", 1)
+        if "已用次数" in row:
+            row["已用次数"] = 0
+    (dst_exports / "index.json").write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    csv_path = dst_exports / "index.csv"
+    if csv_path.exists():   # CSV 同步换路径与清零用次
+        text = csv_path.read_text(encoding="utf-8")
+        head, *lines = text.splitlines()
+        out_lines = [head]
+        for ln in lines:
+            ln = ln.replace(f"/{args.batch}/", f"/{new_id}/")
+            cells = ln.split(",")
+            if len(cells) > 3 and cells[-1].strip().isdigit():
+                cells[-1] = "0"
+            out_lines.append(",".join(cells))
+        csv_path.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
+
+    print(json.dumps({
+        "ok": True, "batch_id": new_id, "reused_from": args.batch,
+        "shots": len(rows), "keyframes_hardlinked": linked,
+        "independent": True,
+        "note": "新批次已用次数归零；源视频文件为共享只读，两批次业务互不影响",
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tag_cut_cli", description="tag_cut agent CLI")
     sub = p.add_subparsers(dest="command", required=True)
@@ -221,6 +291,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--layer", default=None)
     s.add_argument("--limit", type=int, default=50)
     s.set_defaults(func=cmd_search)
+
+    s = sub.add_parser("clone", help="复用已有批次创建新批次（资源复用，业务独立）")
+    s.add_argument("--batch", required=True, help="源批次 ID（已打标）")
+    s.add_argument("--new", default=None, help="新批次 ID（默认 <源>-复用-YYYYMMDD）")
+    s.add_argument("--config", default=None)
+    s.set_defaults(func=cmd_clone)
 
     s = sub.add_parser("export", help="Export index.json/csv for a batch")
     s.add_argument("--batch-id", required=True)
