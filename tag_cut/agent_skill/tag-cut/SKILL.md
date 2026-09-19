@@ -30,7 +30,7 @@ If `.venv` missing, run env-check and tell the user to `pip install -r requireme
 | Intent | CLI |
 |--------|-----|
 | Check machine | `env-check` |
-| Analyze batch | `analyze --batch <dir> [--limit N] [--force] [--batch-id NAME]` |
+| Analyze batch | `analyze --batch <dir> [--limit N] [--force] [--batch-id NAME] [--progress ndjson]` |
 | Search clips | `search --q <kw> [--batch-id NAME] [--label-type TYPE] [--limit 50]` |
 | Export index | `export --batch-id NAME` |
 | YOLO list/probe | `models list` / `models probe` / `models ensure` |
@@ -38,7 +38,10 @@ If `.venv` missing, run env-check and tell the user to `pip install -r requireme
 | YOLO activate | `models activate --model-id yolov8s` |
 | API server | `serve --port 8765` (long-running; only if user asks) |
 
-All commands print **JSON** to stdout. Summarize for the user; quote key paths.
+All commands print **JSON** to stdout (one parseable document, `ok` field included);
+logs/progress go to stderr. Exit codes: 0=ok, 1=failed, 2=usage/input error.
+`analyze --progress ndjson` streams one `{"event":"stage",...}` line per layer to stderr.
+Summarize for the user; quote key paths.
 
 ## Workflow
 

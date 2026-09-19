@@ -59,11 +59,21 @@ def cmd_env_check(_: argparse.Namespace) -> int:
     return 0 if out["ok"] else 1
 
 
+def _emit_progress(enabled: bool, event: dict) -> None:
+    """--progress ndjson：每个视频/层级一行 JSON 事件打到 stderr（stdout 保持纯净）。"""
+    if enabled:
+        print(json.dumps(event, ensure_ascii=False), file=sys.stderr, flush=True)
+
+
 def cmd_analyze(args: argparse.Namespace) -> int:
+    import contextlib
+
     from pipelines.run import run_pipeline
     from pipelines.export_index import export_batch
     from services.config import load_config
     from services.paths import resolve_batch_path
+
+    progress = getattr(args, "progress", "none") == "ndjson"
 
     cfg = load_config(Path(args.config) if args.config else None)
     data_root = (ROOT / cfg["data_root"]).resolve()
@@ -92,14 +102,29 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             shutil.rmtree(dest)
 
     results = []
-    for video in videos:
-        status = run_pipeline(
-            video_path=video,
-            batch_id=batch_id,
-            data_root=data_root,
-            layers=args.layers.split(",") if args.layers else None,
-        )
+    for i, video in enumerate(videos, 1):
+        _emit_progress(progress, {
+            "event": "video_start", "index": i, "total": len(videos), "video": str(video),
+        })
+
+        def cb(layer: str, status: str, error: str | None, _v=str(video)) -> None:
+            _emit_progress(progress, {
+                "event": "stage", "video": _v, "layer": layer,
+                "status": status, "error": error,
+            })
+
+        # YOLO 等三方库可能向 stdout 打印 banner：重定向到 stderr，
+        # 保证 stdout 始终只有一个可解析的最终 JSON。
+        with contextlib.redirect_stdout(sys.stderr):
+            status = run_pipeline(
+                video_path=video,
+                batch_id=batch_id,
+                data_root=data_root,
+                layers=args.layers.split(",") if args.layers else None,
+                progress_callback=cb if progress else None,
+            )
         results.append({"video": str(video), "status": status})
+        _emit_progress(progress, {"event": "video_done", "index": i, "video": str(video)})
 
     export_path = None
     if not args.no_export:
@@ -193,7 +218,9 @@ def cmd_serve(args: argparse.Namespace) -> int:
     ]
     if args.reload:
         cmd.append("--reload")
-    print(json.dumps({"ok": True, "cmd": cmd, "cwd": str(ROOT)}, ensure_ascii=False))
+    # uvicorn 的访问日志会打到 stdout：就绪信息走 stderr，stdout 不承诺可解析
+    print(json.dumps({"ok": True, "cmd": cmd, "cwd": str(ROOT)}, ensure_ascii=False),
+          file=sys.stderr, flush=True)
     return subprocess.call(cmd, cwd=str(ROOT), env={**dict(**{k: v for k, v in __import__("os").environ.items()}), "PYTHONPATH": str(ROOT)})
 
 
@@ -268,7 +295,16 @@ def cmd_clone(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="tag_cut_cli", description="tag_cut agent CLI")
+    p = argparse.ArgumentParser(
+        prog="tag_cut_cli",
+        description="tag_cut agent CLI",
+        epilog=(
+            "输出约定: stdout 只输出一个最终 JSON 文档(含 ok 字段); "
+            "日志/进度走 stderr. "
+            "退出码: 0=成功, 1=运行失败, 2=用法或输入错误. "
+            "长任务(analyze)建议加 --progress ndjson 获取逐阶段 stderr 事件."
+        ),
+    )
     sub = p.add_subparsers(dest="command", required=True)
 
     s = sub.add_parser("env-check", help="Check local deps + YOLO env")
@@ -282,6 +318,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--layers", default=None, help="Comma list e.g. l0,split,l1,l2,l3_l6")
     s.add_argument("--no-export", action="store_true")
     s.add_argument("--config", default=None)
+    s.add_argument("--progress", choices=["none", "ndjson"], default="none",
+                   help="ndjson=每个视频/层级进度事件打到 stderr(agent 可观测)")
     s.set_defaults(func=cmd_analyze)
 
     s = sub.add_parser("search", help="Search shots by tag text")
@@ -323,7 +361,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return int(args.func(args))
     except Exception as exc:  # noqa: BLE001
-        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        # 意外崩溃也保证 stdout 是一个可解析的错误 JSON；traceback 供人排查
+        import traceback
+        print(json.dumps({
+            "ok": False,
+            "code": "crash",
+            "error": str(exc),
+        }, ensure_ascii=False))
+        print(traceback.format_exc(), file=sys.stderr)
         return 1
 
 
